@@ -7,7 +7,7 @@ services:
     command: "-target=all -config.file=/etc/tempo.yaml"
     restart: always
     volumes:
-      - ./tempo.yaml:/etc/tempo.yaml
+      - ./tempo.yml:/etc/tempo.yaml
       - ./tempo-data:/var/tempo
     ports:
       - "3200:3200" # tempo
@@ -50,14 +50,14 @@ services:
       - redpanda
 
   # ingest pipeline
-  k6-tracing:
-    image: ghcr.io/grafana/xk6-client-tracing:v0.0.9
-    environment:
-      - ENDPOINT=alloy:4317
-    restart: always
-    depends_on:
-      - tempo
-      - alloy
+  # k6-tracing:
+  #   image: ghcr.io/grafana/xk6-client-tracing:v0.0.9
+  #   environment:
+  #     - ENDPOINT=alloy:4317
+  #   restart: always
+  #   depends_on:
+  #     - tempo
+  #     - alloy
 
   alloy:
     image: grafana/alloy:v1.14.1@sha256:8f5666aebb871ba43ee2d65159c5d1c26c903720efafaf2d9ed4e237afc3bc88
@@ -112,3 +112,28 @@ services:
       ]
     depends_on:
       - tempo
+
+  # Fruits API service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    depends_on:
+      - tempo
+    restart: always
+
+  # Fruits Client service
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    restart: always

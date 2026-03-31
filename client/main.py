@@ -1,6 +1,8 @@
 """Client application for consuming fruits API with OpenTelemetry instrumentation."""
 
 import logging
+import os
+import time
 import requests
 from opentelemetry import trace
 
@@ -58,11 +60,32 @@ def fetch_and_print_fruits(api_url: str = "http://localhost:8000"):
 def main():
     """Main entry point for the client application."""
     logger.info("Fruits Client starting")
+    
+    # Get API URL from environment variable or use default
+    api_url = os.getenv("API_URL", "http://localhost:8000")
+    logger.info(f"Configured API URL: {api_url}")
+    
+    # Run continuously, fetching fruits at regular intervals
+    fetch_interval = 30  # seconds between fetches
+    
     try:
-        fetch_and_print_fruits()
-        logger.info("Client completed successfully")
+        iteration = 0
+        while True:
+            iteration += 1
+            logger.info(f"Fruits Client iteration {iteration} starting")
+            try:
+                fetch_and_print_fruits(api_url)
+                logger.info(f"Iteration {iteration} completed successfully")
+            except Exception as e:
+                logger.error(f"Iteration {iteration} failed: {str(e)}", exc_info=True)
+                # Continue looping even if one iteration fails
+            
+            logger.debug(f"Sleeping for {fetch_interval} seconds before next fetch")
+            time.sleep(fetch_interval)
+    except KeyboardInterrupt:
+        logger.info("Fruits Client interrupted by user")
     except Exception as e:
-        logger.error(f"Client failed with error: {str(e)}", exc_info=True)
+        logger.error(f"Client encountered fatal error: {str(e)}", exc_info=True)
         exit(1)
 
 
