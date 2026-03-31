@@ -1,0 +1,32 @@
+# Multi-stage build for the Fruits Client
+FROM python:3.13-slim AS builder
+
+WORKDIR /app
+
+# Install uv
+RUN pip install uv
+
+# Copy project files
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN uv sync --frozen
+
+
+# Final stage
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Copy Python environment from builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Copy application code
+COPY client/ ./client/
+
+# Set environment variables
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+
+# Run the client
+CMD ["python", "-m", "client.main"]
